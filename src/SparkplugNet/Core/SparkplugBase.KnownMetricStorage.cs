@@ -52,12 +52,6 @@ public partial class SparkplugBase<T> : ISparkplugConnection where T : IMetric, 
 
             foreach (var metric in knownMetrics)
             {
-                // Version A: KuraMetric has name only.
-                if (metric is VersionAData.KuraMetric _)
-                {
-                    this.AddVersionAMetric(metric);
-                }
-
                 // Version B: Metric might have name and alias.
                 if (metric is Metric versionBMetric)
                 {
@@ -79,16 +73,6 @@ public partial class SparkplugBase<T> : ISparkplugConnection where T : IMetric, 
 
             foreach (var metric in metrics)
             {
-                // Version A: KuraMetric has name only.
-                if (metric is VersionAData.KuraMetric versionAMetric)
-                {
-                    if (this.ShouldVersionAMetricBeAdded(versionAMetric))
-                    {
-                        filteredMetrics.Add(metric);
-                        continue;
-                    }
-                }
-
                 // Version B: Metric might have name and alias.
                 if (metric is Metric versionBMetric)
                 {
@@ -212,67 +196,6 @@ public partial class SparkplugBase<T> : ISparkplugConnection where T : IMetric, 
             }
 
             return shouldbeAdded;
-        }
-
-        /// <summary>
-        /// Gets a value indicating whether a version A metric should be added to the result or not.
-        /// </summary>
-        /// <param name="metric">The converted (typed) metric.</param>
-        /// <returns>A value indicating whether a version A metric should be added to the result or not.</returns>
-        private bool ShouldVersionAMetricBeAdded(VersionAData.KuraMetric metric)
-        {
-            var shouldbeAdded = true;
-
-            // Check metric name.
-            if (string.IsNullOrWhiteSpace(metric.Name))
-            {
-                shouldbeAdded = false;
-                this.Logger?.LogError("A metric without a name is not allowed: {Metric}.", metric);
-            }
-
-            // Check if the metric is known.
-            if (!this.knownMetricsByName.TryGetValue(metric.Name, out var foundMetric))
-            {
-                shouldbeAdded = false;
-                this.Logger?.LogError("The metric {Metric} is removed because it is unknown.", metric);
-            }
-
-            // Check if the found metric is a version A metric.
-            if (foundMetric is not VersionAData.KuraMetric foundVersionAMetric)
-            {
-                shouldbeAdded = false;
-                this.Logger?.LogError("The metric cast didn't work properly.");
-            }
-            else if (foundVersionAMetric.DataType != metric.DataType)
-            {
-                shouldbeAdded = false;
-                this.Logger?.LogError("The metric's data type is invalid.");
-            }
-
-            return shouldbeAdded;
-        }
-
-        /// <summary>
-        /// Adds a version A metric to the known metrics.
-        /// </summary>
-        /// <param name="metric">The metric.</param>
-        /// <exception cref="InvalidMetricException">Thrown if the metric is invalid.</exception>
-        private void AddVersionAMetric(T metric)
-        {
-            // Check the name of the metric.
-            if (string.IsNullOrWhiteSpace(metric.Name))
-            {
-                throw new InvalidMetricException($"A metric without a name is not allowed.");
-            }
-
-            // Check the value of the metric.
-            if (metric.Value is null)
-            {
-                throw new InvalidMetricException($"A metric without a current value is not allowed.");
-            }
-
-            // Hint: Data type doesn't need to be checked, is not nullable.
-            this.knownMetricsByName[metric.Name] = metric;
         }
 
         /// <summary>

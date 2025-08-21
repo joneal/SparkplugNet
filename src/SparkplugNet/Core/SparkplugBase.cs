@@ -56,14 +56,7 @@ public partial class SparkplugBase<T> : ISparkplugConnection where T : IMetric, 
     {
         this.knownMetrics = knownMetricsStorage;
 
-        if (typeof(T).IsAssignableFrom(typeof(VersionAData.KuraMetric)))
-        {
-            this.NameSpace = SparkplugNamespace.VersionA;
-        }
-        else
-        {
-            this.NameSpace = SparkplugNamespace.VersionB;
-        }
+        this.NameSpace = SparkplugNamespace.VersionB;
 
         this.client = new MqttFactory().CreateMqttClient();
         this.messageGenerator = new SparkplugMessageGenerator(specificationVersion);

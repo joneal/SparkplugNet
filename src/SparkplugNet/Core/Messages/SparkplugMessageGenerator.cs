@@ -49,7 +49,6 @@ internal sealed class SparkplugMessageGenerator
 
         return nameSpace switch
         {
-            SparkplugNamespace.VersionA => this.GetSparkplugStateMessageA(scadaHostIdentifier, online),
             SparkplugNamespace.VersionB => this.GetSparkplugStateMessageB(scadaHostIdentifier, online),
             _ => throw new ArgumentOutOfRangeException(nameof(nameSpace))
         };
@@ -91,13 +90,6 @@ internal sealed class SparkplugMessageGenerator
 
         switch (nameSpace)
         {
-            case SparkplugNamespace.VersionA:
-                {
-                    var newMetrics = metrics as IEnumerable<VersionAData.KuraMetric> ?? new List<VersionAData.KuraMetric>();
-                    return this.GetSparkplugNodeBirthA(nameSpace, groupIdentifier, edgeNodeIdentifier,
-                        AddSessionNumberToMetrics(newMetrics, sessionNumber), dateTime);
-                }
-
             case SparkplugNamespace.VersionB:
                 {
                     var newMetrics = metrics as IEnumerable<Metric> ?? new List<Metric>();
@@ -153,14 +145,6 @@ internal sealed class SparkplugMessageGenerator
 
         switch (nameSpace)
         {
-            case SparkplugNamespace.VersionA:
-                {
-                    var newMetrics = metrics as IEnumerable<VersionAData.KuraMetric>
-                                     ?? new List<VersionAData.KuraMetric>();
-                    return this.GetSparkplugDeviceBirthA(nameSpace, groupIdentifier, edgeNodeIdentifier, deviceIdentifier,
-                         AddSessionNumberToMetrics(newMetrics, sessionNumber), dateTime);
-                }
-
             case SparkplugNamespace.VersionB:
                 {
                     var newMetrics = metrics as IEnumerable<Metric> ?? new List<Metric>();
@@ -202,13 +186,6 @@ internal sealed class SparkplugMessageGenerator
 
         switch (nameSpace)
         {
-            case SparkplugNamespace.VersionA:
-                {
-                    var metrics = new List<VersionAData.KuraMetric>();
-                    return this.GetSparkplugNodeDeathA(nameSpace, groupIdentifier, edgeNodeIdentifier,
-                        AddSessionNumberToMetrics(metrics, sessionNumber));
-                }
-
             case SparkplugNamespace.VersionB:
                 {
                     var metrics = new List<Metric>();
@@ -260,13 +237,6 @@ internal sealed class SparkplugMessageGenerator
 
         switch (nameSpace)
         {
-            case SparkplugNamespace.VersionA:
-                {
-                    var metrics = new List<VersionAData.KuraMetric>();
-                    return this.GetSparkplugDeviceDeathA(nameSpace, groupIdentifier, edgeNodeIdentifier, deviceIdentifier,
-                        AddSessionNumberToMetrics(metrics, sessionNumber), dateTime);
-                }
-
             case SparkplugNamespace.VersionB:
                 {
                     var metrics = new List<Metric>();
@@ -315,14 +285,6 @@ internal sealed class SparkplugMessageGenerator
 
         switch (nameSpace)
         {
-            case SparkplugNamespace.VersionA:
-                {
-                    var newMetrics = metrics as IEnumerable<VersionAData.KuraMetric>
-                                     ?? new List<VersionAData.KuraMetric>();
-                    return this.GetSparkplugNodeDataA(nameSpace, groupIdentifier, edgeNodeIdentifier,
-                        AddSessionNumberToMetrics(newMetrics, sessionNumber), dateTime);
-                }
-
             case SparkplugNamespace.VersionB:
                 {
                     var newMetrics = metrics as IEnumerable<Metric>
@@ -379,14 +341,6 @@ internal sealed class SparkplugMessageGenerator
 
         switch (nameSpace)
         {
-            case SparkplugNamespace.VersionA:
-                {
-                    var newMetrics = metrics as IEnumerable<VersionAData.KuraMetric>
-                                     ?? new List<VersionAData.KuraMetric>();
-                    return this.GetSparkplugDeviceDataA(nameSpace, groupIdentifier, edgeNodeIdentifier, deviceIdentifier,
-                        AddSessionNumberToMetrics(newMetrics, sessionNumber), dateTime);
-                }
-
             case SparkplugNamespace.VersionB:
                 {
                     var newMetrics = metrics as IEnumerable<Metric>
@@ -436,14 +390,6 @@ internal sealed class SparkplugMessageGenerator
 
         switch (nameSpace)
         {
-            case SparkplugNamespace.VersionA:
-                {
-                    var newMetrics = metrics as IEnumerable<VersionAData.KuraMetric>
-                                     ?? new List<VersionAData.KuraMetric>();
-                    return GetSparkplugNodeCommandA(nameSpace, groupIdentifier, edgeNodeIdentifier,
-                        AddSessionNumberToMetrics(newMetrics, sessionNumber), dateTime);
-                }
-
             case SparkplugNamespace.VersionB:
                 {
                     var newMetrics = metrics as IEnumerable<Metric>
@@ -501,15 +447,6 @@ internal sealed class SparkplugMessageGenerator
 
         switch (nameSpace)
         {
-            case SparkplugNamespace.VersionA:
-                {
-                    var newMetrics = metrics as IEnumerable<VersionAData.KuraMetric>
-                                     ?? new List<VersionAData.KuraMetric>();
-                    newMetrics = AddSessionNumberToMetrics(newMetrics, sessionNumber);
-
-                    return GetSparkplugDeviceCommandA(nameSpace, groupIdentifier, edgeNodeIdentifier, deviceIdentifier, newMetrics, dateTime);
-                }
-
             case SparkplugNamespace.VersionB:
                 {
                     var newMetrics = metrics as IEnumerable<Metric>
@@ -525,21 +462,6 @@ internal sealed class SparkplugMessageGenerator
         }
     }
 
-    /// <summary>Adds the session number to the version A metrics.</summary>
-    /// <param name="metrics">The metrics.</param>
-    /// <param name="sessionSequenceNumber">The session sequence number.</param>
-    /// <returns>The metrics.</returns>
-    private static IEnumerable<VersionAData.KuraMetric> AddSessionNumberToMetrics(
-        IEnumerable<VersionAData.KuraMetric> metrics,
-        long sessionSequenceNumber)
-    {
-        // Add a BDSEQ metric.
-        return metrics.Concat(
-        [
-            new VersionAData.KuraMetric(Constants.SessionNumberMetricName, VersionADataTypeEnum.Int64, sessionSequenceNumber)
-        ]);
-    }
-
     /// <summary>Adds the session number to the version B metrics.</summary>
     /// <param name="metrics">The metrics.</param>
     /// <param name="sessionSequenceNumber">The session sequence number.</param>
@@ -553,19 +475,6 @@ internal sealed class SparkplugMessageGenerator
         {
             new Metric(Constants.SessionNumberMetricName, VersionBDataTypeEnum.Int64, sessionSequenceNumber)
         });
-    }
-
-    /// <summary>
-    /// Gets a STATE message with namespace version A.
-    /// </summary>
-    /// <param name="scadaHostIdentifier">The SCADA host identifier.</param>
-    /// <param name="online">A value indicating whether the message sender is online or not.</param>
-    /// <returns>A new STATE <see cref="MqttApplicationMessage"/>.</returns>
-    private MqttApplicationMessage GetSparkplugStateMessageA(string scadaHostIdentifier, bool online)
-    {
-        return new MqttApplicationMessageBuilder()
-            .WithTopic(SparkplugTopicGenerator.GetSparkplugStateMessageTopic(scadaHostIdentifier, this.specificationVersion))
-            .WithPayload(online ? "ONLINE" : "OFFLINE").WithQualityOfServiceLevel(MqttQualityOfServiceLevel.AtLeastOnce).WithRetainFlag().Build();
     }
 
     /// <summary>
@@ -611,43 +520,6 @@ internal sealed class SparkplugMessageGenerator
     }
 
     /// <summary>
-    /// Gets a NBIRTH message with namespace version A.
-    /// </summary>
-    /// <param name="nameSpace">The namespace.</param>
-    /// <param name="groupIdentifier">The group identifier.</param>
-    /// <param name="edgeNodeIdentifier">The edge node identifier.</param>
-    /// <param name="metrics">The metrics.</param>
-    /// <param name="dateTime">The date time.</param>
-    /// <returns>A new NBIRTH <see cref="MqttApplicationMessage"/>.</returns>
-    private MqttApplicationMessage GetSparkplugNodeBirthA(
-        SparkplugNamespace nameSpace,
-        string groupIdentifier,
-        string edgeNodeIdentifier,
-        IEnumerable<VersionAData.KuraMetric> metrics,
-        DateTimeOffset dateTime)
-    {
-        var payload = new VersionAData.Payload
-        {
-            Metrics = metrics.ToList(),
-            Timestamp = dateTime.ToUnixTimeMilliseconds()
-        };
-
-        var convertedPayload = VersionA.PayloadConverter.ConvertVersionAPayload(payload);
-        var serialized = PayloadHelper.Serialize(convertedPayload);
-
-        return new MqttApplicationMessageBuilder()
-            .WithTopic(
-                SparkplugTopicGenerator.GetTopic(
-                    nameSpace,
-                    groupIdentifier,
-                    SparkplugMessageType.NodeBirth,
-                    edgeNodeIdentifier,
-                    string.Empty)).WithPayload(serialized)
-            .WithQualityOfServiceLevel(MqttQualityOfServiceLevel.AtLeastOnce)
-            .Build();
-    }
-
-    /// <summary>
     /// Gets a NBIRTH message with namespace version B.
     /// </summary>
     /// <param name="nameSpace">The namespace.</param>
@@ -686,46 +558,6 @@ internal sealed class SparkplugMessageGenerator
             .WithPayload(serialized)
             .WithQualityOfServiceLevel(MqttQualityOfServiceLevel.AtMostOnce)
             .WithRetainFlag(false)
-            .Build();
-    }
-
-    /// <summary>
-    /// Gets a DBIRTH message with namespace version A.
-    /// </summary>
-    /// <param name="nameSpace">The namespace.</param>
-    /// <param name="groupIdentifier">The group identifier.</param>
-    /// <param name="edgeNodeIdentifier">The edge node identifier.</param>
-    /// <param name="deviceIdentifier">The device identifier.</param>
-    /// <param name="metrics">The metrics.</param>
-    /// <param name="dateTime">The date time.</param>
-    /// <returns>A new DBIRTH <see cref="MqttApplicationMessage"/>.</returns>
-    private MqttApplicationMessage GetSparkplugDeviceBirthA(
-        SparkplugNamespace nameSpace,
-        string groupIdentifier,
-        string edgeNodeIdentifier,
-        string deviceIdentifier,
-        IEnumerable<VersionAData.KuraMetric> metrics,
-        DateTimeOffset dateTime)
-    {
-        var payload = new VersionAData.Payload
-        {
-            Metrics = metrics.ToList(),
-            Timestamp = dateTime.ToUnixTimeMilliseconds()
-        };
-
-        var convertedPayload = VersionA.PayloadConverter.ConvertVersionAPayload(payload);
-        var serialized = PayloadHelper.Serialize(convertedPayload);
-
-        return new MqttApplicationMessageBuilder()
-            .WithTopic(
-                SparkplugTopicGenerator.GetTopic(
-                    nameSpace,
-                    groupIdentifier,
-                    SparkplugMessageType.DeviceBirth,
-                    edgeNodeIdentifier,
-                    deviceIdentifier))
-            .WithPayload(serialized)
-            .WithQualityOfServiceLevel(MqttQualityOfServiceLevel.AtLeastOnce)
             .Build();
     }
 
@@ -774,41 +606,6 @@ internal sealed class SparkplugMessageGenerator
     }
 
     /// <summary>
-    /// Gets a NDEATH message with namespace version A.
-    /// </summary>
-    /// <param name="nameSpace">The namespace.</param>
-    /// <param name="groupIdentifier">The group identifier.</param>
-    /// <param name="edgeNodeIdentifier">The edge node identifier.</param>
-    /// <param name="metrics">The metrics.</param>
-    /// <returns>A new NDEATH <see cref="MqttApplicationMessage"/>.</returns>
-    private MqttApplicationMessage GetSparkplugNodeDeathA(
-        SparkplugNamespace nameSpace,
-        string groupIdentifier,
-        string edgeNodeIdentifier,
-        IEnumerable<VersionAData.KuraMetric> metrics)
-    {
-        var payload = new VersionAData.Payload
-        {
-            Metrics = metrics.ToList()
-        };
-
-        var convertedPayload = VersionA.PayloadConverter.ConvertVersionAPayload(payload);
-        var serialized = PayloadHelper.Serialize(convertedPayload);
-
-        return new MqttApplicationMessageBuilder()
-            .WithTopic(
-                SparkplugTopicGenerator.GetTopic(
-                    nameSpace,
-                    groupIdentifier,
-                    SparkplugMessageType.NodeDeath,
-                    edgeNodeIdentifier,
-                    string.Empty))
-            .WithPayload(serialized)
-            .WithQualityOfServiceLevel(MqttQualityOfServiceLevel.AtLeastOnce)
-            .Build();
-    }
-
-    /// <summary>
     /// Gets a NDEATH message with namespace version B.
     /// </summary>
     /// <param name="nameSpace">The namespace.</param>
@@ -841,46 +638,6 @@ internal sealed class SparkplugMessageGenerator
             .WithPayload(serialized)
             .WithQualityOfServiceLevel(MqttQualityOfServiceLevel.AtLeastOnce)
             .WithRetainFlag(false)
-            .Build();
-    }
-
-    /// <summary>
-    /// Gets a DDEATH message with namespace version A.
-    /// </summary>
-    /// <param name="nameSpace">The namespace.</param>
-    /// <param name="groupIdentifier">The group identifier.</param>
-    /// <param name="edgeNodeIdentifier">The edge node identifier.</param>
-    /// <param name="deviceIdentifier">The device identifier.</param>
-    /// <param name="metrics">The metrics.</param>
-    /// <param name="dateTime">The date time.</param>
-    /// <returns>A new DDEATH <see cref="MqttApplicationMessage"/>.</returns>
-    private MqttApplicationMessage GetSparkplugDeviceDeathA(
-        SparkplugNamespace nameSpace,
-        string groupIdentifier,
-        string edgeNodeIdentifier,
-        string deviceIdentifier,
-        IEnumerable<VersionAData.KuraMetric> metrics,
-        DateTimeOffset dateTime)
-    {
-        var payload = new VersionAData.Payload
-        {
-            Metrics = metrics.ToList(),
-            Timestamp = dateTime.ToUnixTimeMilliseconds()
-        };
-
-        var convertedPayload = VersionA.PayloadConverter.ConvertVersionAPayload(payload);
-        var serialized = PayloadHelper.Serialize(convertedPayload);
-
-        return new MqttApplicationMessageBuilder()
-            .WithTopic(
-                SparkplugTopicGenerator.GetTopic(
-                    nameSpace,
-                    groupIdentifier,
-                    SparkplugMessageType.DeviceDeath,
-                    edgeNodeIdentifier,
-                    deviceIdentifier))
-            .WithPayload(serialized)
-            .WithQualityOfServiceLevel(MqttQualityOfServiceLevel.AtLeastOnce)
             .Build();
     }
 
@@ -929,44 +686,6 @@ internal sealed class SparkplugMessageGenerator
     }
 
     /// <summary>
-    /// Gets a NDATA message with namespace version A.
-    /// </summary>
-    /// <param name="nameSpace">The namespace.</param>
-    /// <param name="groupIdentifier">The group identifier.</param>
-    /// <param name="edgeNodeIdentifier">The edge node identifier.</param>
-    /// <param name="metrics">The metrics.</param>
-    /// <param name="dateTime">The date time.</param>
-    /// <returns>A new NDATA <see cref="MqttApplicationMessage"/>.</returns>
-    private MqttApplicationMessage GetSparkplugNodeDataA(
-        SparkplugNamespace nameSpace,
-        string groupIdentifier,
-        string edgeNodeIdentifier,
-        IEnumerable<VersionAData.KuraMetric> metrics,
-        DateTimeOffset dateTime)
-    {
-        var payload = new VersionAData.Payload
-        {
-            Metrics = metrics.ToList(),
-            Timestamp = dateTime.ToUnixTimeMilliseconds()
-        };
-
-        var convertedPayload = VersionA.PayloadConverter.ConvertVersionAPayload(payload);
-        var serialized = PayloadHelper.Serialize(convertedPayload);
-
-        return new MqttApplicationMessageBuilder()
-            .WithTopic(
-                SparkplugTopicGenerator.GetTopic(
-                    nameSpace,
-                    groupIdentifier,
-                    SparkplugMessageType.NodeData,
-                    edgeNodeIdentifier,
-                    string.Empty))
-            .WithPayload(serialized)
-            .WithQualityOfServiceLevel(MqttQualityOfServiceLevel.AtLeastOnce)
-            .Build();
-    }
-
-    /// <summary>
     /// Gets a NDATA message with namespace version B.
     /// </summary>
     /// <param name="nameSpace">The namespace.</param>
@@ -1005,46 +724,6 @@ internal sealed class SparkplugMessageGenerator
             .WithPayload(serialized)
             .WithQualityOfServiceLevel(MqttQualityOfServiceLevel.AtMostOnce)
             .WithRetainFlag(false)
-            .Build();
-    }
-
-    /// <summary>
-    /// Gets a DDATA message with namespace version A.
-    /// </summary>
-    /// <param name="nameSpace">The namespace.</param>
-    /// <param name="groupIdentifier">The group identifier.</param>
-    /// <param name="edgeNodeIdentifier">The edge node identifier.</param>
-    /// <param name="deviceIdentifier">The device identifier.</param>
-    /// <param name="metrics">The metrics.</param>
-    /// <param name="dateTime">The date time.</param>
-    /// <returns>A new DDATA <see cref="MqttApplicationMessage"/>.</returns>
-    private MqttApplicationMessage GetSparkplugDeviceDataA(
-        SparkplugNamespace nameSpace,
-        string groupIdentifier,
-        string edgeNodeIdentifier,
-        string deviceIdentifier,
-        IEnumerable<VersionAData.KuraMetric> metrics,
-        DateTimeOffset dateTime)
-    {
-        var payload = new VersionAData.Payload
-        {
-            Metrics = metrics.ToList(),
-            Timestamp = dateTime.ToUnixTimeMilliseconds()
-        };
-
-        var convertedPayload = VersionA.PayloadConverter.ConvertVersionAPayload(payload);
-        var serialized = PayloadHelper.Serialize(convertedPayload);
-
-        return new MqttApplicationMessageBuilder()
-            .WithTopic(
-                SparkplugTopicGenerator.GetTopic(
-                    nameSpace,
-                    groupIdentifier,
-                    SparkplugMessageType.DeviceData,
-                    edgeNodeIdentifier,
-                    deviceIdentifier))
-            .WithPayload(serialized)
-            .WithQualityOfServiceLevel(MqttQualityOfServiceLevel.AtLeastOnce)
             .Build();
     }
 
@@ -1093,43 +772,6 @@ internal sealed class SparkplugMessageGenerator
     }
 
     /// <summary>
-    /// Gets a NCMD message with namespace version A.
-    /// </summary>
-    /// <param name="nameSpace">The namespace.</param>
-    /// <param name="groupIdentifier">The group identifier.</param>
-    /// <param name="edgeNodeIdentifier">The edge node identifier.</param>
-    /// <param name="metrics">The metrics.</param>
-    /// <param name="dateTime">The date time.</param>
-    /// <returns>A new NCMD <see cref="MqttApplicationMessage"/>.</returns>
-    private static MqttApplicationMessage GetSparkplugNodeCommandA(
-        SparkplugNamespace nameSpace,
-        string groupIdentifier,
-        string edgeNodeIdentifier,
-        IEnumerable<VersionAData.KuraMetric> metrics,
-        DateTimeOffset dateTime)
-    {
-        var payload = new VersionAData.Payload
-        {
-            Metrics = metrics.ToList(),
-            Timestamp = dateTime.ToUnixTimeMilliseconds()
-        };
-
-        var convertedPayload = VersionA.PayloadConverter.ConvertVersionAPayload(payload);
-        var serialized = PayloadHelper.Serialize(convertedPayload);
-
-        return new MqttApplicationMessageBuilder()
-            .WithTopic(
-                SparkplugTopicGenerator.GetTopic(
-                    nameSpace,
-                    groupIdentifier,
-                    SparkplugMessageType.NodeCommand,
-                    edgeNodeIdentifier,
-                    string.Empty)).WithPayload(serialized)
-            .WithQualityOfServiceLevel(MqttQualityOfServiceLevel.AtLeastOnce)
-            .Build();
-    }
-
-    /// <summary>
     /// Gets a NCMD message with namespace version B.
     /// </summary>
     /// <param name="nameSpace">The namespace.</param>
@@ -1167,45 +809,6 @@ internal sealed class SparkplugMessageGenerator
                     string.Empty)).WithPayload(serialized)
             .WithQualityOfServiceLevel(MqttQualityOfServiceLevel.AtMostOnce)
             .WithRetainFlag(false)
-            .Build();
-    }
-
-    /// <summary>
-    /// Gets a DCMD message with namespace version A.
-    /// </summary>
-    /// <param name="nameSpace">The namespace.</param>
-    /// <param name="groupIdentifier">The group identifier.</param>
-    /// <param name="edgeNodeIdentifier">The edge node identifier.</param>
-    /// <param name="deviceIdentifier">The device identifier.</param>
-    /// <param name="metrics">The metrics.</param>
-    /// <param name="dateTime">The date time.</param>
-    /// <returns>A new DCMD <see cref="MqttApplicationMessage"/>.</returns>
-    private static MqttApplicationMessage GetSparkplugDeviceCommandA(
-        SparkplugNamespace nameSpace,
-        string groupIdentifier,
-        string edgeNodeIdentifier,
-        string deviceIdentifier,
-        IEnumerable<VersionAData.KuraMetric> metrics,
-        DateTimeOffset dateTime)
-    {
-        var payload = new VersionAData.Payload
-        {
-            Metrics = metrics.ToList(),
-            Timestamp = dateTime.ToUnixTimeMilliseconds()
-        };
-
-        var convertedPayload = VersionA.PayloadConverter.ConvertVersionAPayload(payload);
-        var serialized = PayloadHelper.Serialize(convertedPayload);
-
-        return new MqttApplicationMessageBuilder()
-            .WithTopic(
-                SparkplugTopicGenerator.GetTopic(
-                    nameSpace,
-                    groupIdentifier,
-                    SparkplugMessageType.DeviceCommand,
-                    edgeNodeIdentifier,
-                    deviceIdentifier)).WithPayload(serialized)
-            .WithQualityOfServiceLevel(MqttQualityOfServiceLevel.AtLeastOnce)
             .Build();
     }
 
