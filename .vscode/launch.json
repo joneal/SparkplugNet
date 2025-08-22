@@ -1,0 +1,19 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Sparkplug Examples",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build - examples",
+            "program": "${workspaceFolder}/src/SparkplugNet.Examples/bin/Debug/net8.0/SparkplugNet.Examples.dll",
+            "args": [],
+            "cwd": "${workspaceFolder}",
+            "console": "internalConsole",
+            "stopAtEntry": false,
+            "logging": {
+                "moduleLoad": false
+            }
+        }
+    ]
+}

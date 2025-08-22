@@ -6,7 +6,7 @@
         <LangVersion>latest</LangVersion>
         <Nullable>enable</Nullable>
         <ImplicitUsings>enable</ImplicitUsings>
-        <NoWarn>NU1803,CS0618,CS0809,NU1901,NU1902</NoWarn>
+        <NoWarn>NU1803,CS0618,CS0809,NU1901,NU1902,CS8618</NoWarn>
         <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
         <NuGetAuditMode>all</NuGetAuditMode>
     </PropertyGroup>
@@ -17,6 +17,8 @@
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
         <PackageReference Include="Serilog.Sinks.Console" Version="6.0.0" />
+        <PackageReference Include="MQTTnet" Version="5.0.1.1416" /> 
+        <PackageReference Include="MQTTnet.Server" Version="5.0.1.1416" /> 
     </ItemGroup>
 
     <ItemGroup>

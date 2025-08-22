@@ -1,5 +1,6 @@
 #pragma warning disable IDE0065 // Die using-Anweisung wurde falsch platziert.
 global using System.Buffers.Binary;
+global using System.Buffers;
 global using System.Collections.Concurrent;
 global using System.ComponentModel;
 global using System.Diagnostics;
@@ -13,7 +14,6 @@ global using System.Xml.Serialization;
 global using Microsoft.Extensions.Logging;
 
 global using MQTTnet;
-global using MQTTnet.Client;
 global using MQTTnet.Formatter;
 global using MQTTnet.Internal;
 global using MQTTnet.Protocol;
