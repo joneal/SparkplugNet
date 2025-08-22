@@ -20,30 +20,12 @@ public sealed class Program
     private static readonly CancellationTokenSource CancellationTokenSource = new();
 
     private static MqttServer MqttServer;
+    private static ManualResetEvent NodeExampleCompletedEvent = new(false);
 
     /// <summary>
     /// The version B metrics for an application.
     /// </summary>
-    private static readonly List<VersionBData.Metric> VersionBMetricsApplication =
-    [
-        new VersionBData.Metric("temperatureApplication", VersionBData.DataType.Float, 1.20f),
-        new VersionBData.Metric("climateactiveApplication", VersionBData.DataType.Boolean, true)
-        {
-            Properties = new VersionBData.PropertySet
-            {
-                Keys = ["ON", "OFF"],
-                Values =
-                [
-                    new(VersionBData.DataType.Int8, 1)
-                    {
-                    },
-                    new(VersionBData.DataType.Int8, 0)
-                    {
-                    }
-                ]
-            }
-        }
-    ];
+    private static readonly List<VersionBData.Metric> VersionBMetricsApplication = [];
 
     /// <summary>
     /// The version B metrics for a node.
@@ -108,9 +90,11 @@ public sealed class Program
     private static async Task RunVersionB()
     {
         await RunLocalMQTTBroker();
-        await Task.Delay(2 * 1000);
-        await RunVersionBApplication();
-        await RunVersionBNode();
+        await Task.Delay(1 * 1000);
+        var applicationTask = Task.Run(async () => await RunVersionBApplication(), CancellationToken.None);
+        var nodeTask = Task.Run(async () => await RunVersionBNode(), CancellationToken.None);
+
+        await Task.WhenAll(applicationTask, nodeTask);
     }
 
     /// <summary>
@@ -144,63 +128,81 @@ public sealed class Program
     /// </summary>
     private static async Task RunVersionBApplication()
     {
-        var applicationOptions = new SparkplugApplicationOptions(
-            "localhost",
-            1883,
-            nameof(RunVersionBApplication),
-            "user",
-            "password",
-            "scada1",
-            TimeSpan.FromSeconds(30),
-            SparkplugMqttProtocolVersion.V500,
-            null,
-            null,
-            true,
-            CancellationTokenSource.Token);
-        var application = new VersionB.SparkplugApplication(VersionBMetricsApplication, SparkplugSpecificationVersion.Version22);
+        VersionB.SparkplugApplication? application = null;
 
-        // Handles the application's connected and disconnected events.
-        application.Connected += OnApplicationVersionBConnected;
-        application.Disconnected += OnApplicationVersionBDisconnected;
+        try
+        {
+            var applicationOptions = new SparkplugApplicationOptions(
+                "localhost",
+                1883,
+                nameof(RunVersionBApplication),
+                "user",
+                "password",
+                "scada1",
+                TimeSpan.FromSeconds(30),
+                SparkplugMqttProtocolVersion.V500,
+                null,
+                null,
+                true,
+                CancellationTokenSource.Token);
+            application = new VersionB.SparkplugApplication(VersionBMetricsApplication, SparkplugSpecificationVersion.Version22);
 
-        // Handles the application's device related events.
-        application.DeviceBirthReceived += OnApplicationVersionBDeviceBirthReceived;
-        application.DeviceDataReceived += OnApplicationVersionBDeviceDataReceived;
-        application.DeviceDeathReceived += OnApplicationVersionBDeviceDeathReceived;
+            // Handles the application's connected and disconnected events.
+            application.Connected += OnApplicationVersionBConnected;
+            application.Disconnected += OnApplicationVersionBDisconnected;
 
-        // Handles the application's node related events.
-        application.NodeBirthReceived += OnApplicationVersionBNodeBirthReceived;
-        application.NodeDataReceived += OnApplicationVersionBNodeDataReceived;
-        application.NodeDeathReceived += OnApplicationVersionBNodeDeathReceived;
+            // Handles the application's device related events.
+            application.DeviceBirthReceived += OnApplicationVersionBDeviceBirthReceived;
+            application.DeviceDataReceived += OnApplicationVersionBDeviceDataReceived;
+            application.DeviceDeathReceived += OnApplicationVersionBDeviceDeathReceived;
 
-        // Start an application.
-        Log.Information("SPB_APP: Starting application...");
-        await application.Start(applicationOptions);
-        Log.Information("SPB_APP: Application started...");
+            // Handles the application's node related events.
+            application.NodeBirthReceived += OnApplicationVersionBNodeBirthReceived;
+            application.NodeDataReceived += OnApplicationVersionBNodeDataReceived;
+            application.NodeDeathReceived += OnApplicationVersionBNodeDeathReceived;
 
-        // Publish node commands.
-        Log.Information("SPB_APP: Publishing a node command ...");
-        await application.PublishNodeCommand(VersionBMetricsApplication, "group1", "edge1");
+            // Start an application.
+            Log.Information("SPB_APP: Starting application...");
+            await application.Start(applicationOptions);
+            Log.Information("SPB_APP: Application started...");
 
-        // Publish device commands.
-        Log.Information("SPB_APP: Publishing a device command ...");
-        await application.PublishDeviceCommand(VersionBMetricsApplication, "group1", "edge1", "device1");
+            // Publish node commands.
+            Log.Information("SPB_APP: Publishing a node command ...");
+            await application.PublishNodeCommand(VersionBMetricsApplication, "group1", "edge1");
 
-        // Get the known metrics from an application.
-        var currentlyKnownMetrics = application.KnownMetrics;
+            // Publish device commands.
+            Log.Information("SPB_APP: Publishing a device command ...");
+            await application.PublishDeviceCommand(VersionBMetricsApplication, "group1", "edge1", "device1");
 
-        // Get the device states from an application.
-        var currentDeviceStates = application.DeviceStates;
+            // Get the known metrics from an application.
+            var currentlyKnownMetrics = application.KnownMetrics;
 
-        // Get the node states from an application.
-        var currentNodeStates = application.NodeStates;
+            // Get the device states from an application.
+            var currentDeviceStates = application.DeviceStates;
 
-        // Check whether an application is connected.
-        var isApplicationConnected = application.IsConnected;
+            // Get the node states from an application.
+            var currentNodeStates = application.NodeStates;
 
-        // Stopping an application.
-        await application.Stop();
-        Log.Information("SPB_APP: Application stopped...");
+            // Check whether an application is connected.
+            var isApplicationConnected = application.IsConnected;
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, $"SPB_APP: {ex.Message}");
+        }
+        finally
+        {
+            // Wait for the node example task to be completed.
+            NodeExampleCompletedEvent.WaitOne();
+
+            // Stopping an application.
+            if (application != null)
+            {
+                await application.Stop();
+            }
+
+            Log.Information("SPB_APP: Application stopped...");
+        }
     }
 
     /// <summary>
@@ -208,72 +210,93 @@ public sealed class Program
     /// </summary>
     private static async Task RunVersionBNode()
     {
-        var nodeOptions = new SparkplugNodeOptions(
-            "localhost",
-            1883,
-            "node 1",
-            "user",
-            "password",
-            "scada1B",
-            TimeSpan.FromSeconds(30),
-            SparkplugMqttProtocolVersion.V500,
-            null,
-            null,
-            "group1",
-            "node1",
-            CancellationTokenSource.Token);
-        var node = new VersionB.SparkplugNode(VersionBMetricsNode, SparkplugSpecificationVersion.Version22);
+        VersionB.SparkplugNode? node = null;
 
-        // Handles the node's connected and disconnected events.
-        node.Connected += OnVersionBNodeConnected;
-        node.Disconnected += OnVersionBNodeDisconnected;
+        try
+        {
+            var nodeOptions = new SparkplugNodeOptions(
+                "localhost",
+                1883,
+                "node 1",
+                "user",
+                "password",
+                "scada1B",
+                TimeSpan.FromSeconds(30),
+                SparkplugMqttProtocolVersion.V500,
+                null,
+                null,
+                "group1",
+                "node1",
+                CancellationTokenSource.Token);
+            node = new VersionB.SparkplugNode(VersionBMetricsNode, SparkplugSpecificationVersion.Version22);
 
-        // Handles the node's device related events.
-        node.DeviceBirthPublishing += OnVersionBNodeDeviceBirthPublishing;
-        node.DeviceCommandReceived += OnVersionBNodeDeviceCommandReceived;
-        node.DeviceDeathPublishing += OnVersionBNodeDeviceDeathPublishing;
+            // Handles the node's connected and disconnected events.
+            node.Connected += OnVersionBNodeConnected;
+            node.Disconnected += OnVersionBNodeDisconnected;
 
-        // Handles the node's node command received event.
-        node.NodeCommandReceived += OnVersionBNodeNodeCommandReceived;
+            // Handles the node's device related events.
+            node.DeviceBirthPublishing += OnVersionBNodeDeviceBirthPublishing;
+            node.DeviceCommandReceived += OnVersionBNodeDeviceCommandReceived;
+            node.DeviceDeathPublishing += OnVersionBNodeDeviceDeathPublishing;
 
-        // Handles the node's status message received event.
-        node.StatusMessageReceived += OnVersionBNodeStatusMessageReceived;
+            // Handles the node's node command received event.
+            node.NodeCommandReceived += OnVersionBNodeNodeCommandReceived;
 
-        // Start a node.
-        Log.Information("SPB_NODE: Starting node...");
-        await node.Start(nodeOptions);
-        Log.Information("SPB_NODE: Node started...");
+            // Handles the node's status message received event.
+            node.StatusMessageReceived += OnVersionBNodeStatusMessageReceived;
 
-        // Publish node metrics.
-        await node.PublishMetrics(VersionBMetricsNode);
+            // Start a node.
+            Log.Information("SPB_NODE: Starting node...");
+            await node.Start(nodeOptions);
+            Log.Information("SPB_NODE: Node started...");
 
-        // Get the known node metrics from a node.
-        var currentlyKnownMetrics = node.KnownMetrics;
+            // Publish node metrics.
+            await node.PublishMetrics(VersionBMetricsNode);
 
-        // Check whether a node is connected.
-        var isApplicationConnected = node.IsConnected;
+            // Get the known node metrics from a node.
+            var currentlyKnownMetrics = node.KnownMetrics;
 
-        // Get the known devices.
-        var knownDevices = node.KnownDevices;
+            // Check whether a node is connected.
+            var isApplicationConnected = node.IsConnected;
 
-        // Handling devices.
-        const string DeviceIdentifier = "device1";
+            // Get the known devices.
+            var knownDevices = node.KnownDevices;
 
-        // Publish a device birth message.
-        await node.PublishDeviceBirthMessage(VersionBMetricsDevice, DeviceIdentifier);
+            // Handling devices.
+            const string DeviceIdentifier = "device1";
 
-        // Publish a device data message.
-        await node.PublishDeviceData(VersionBMetricsDevice, DeviceIdentifier);
+            for (var i = 0; i < 3; i++)
+            {
+                // Publish a device birth message.
+                await node.PublishDeviceBirthMessage(VersionBMetricsDevice, DeviceIdentifier);
 
-        // Publish a device death message.
-        await node.PublishDeviceDeathMessage(DeviceIdentifier);
+                // Publish a device data message.
+                await node.PublishDeviceData(VersionBMetricsDevice, DeviceIdentifier);
 
-        // Do a node rebirth to publish new metrics.
-        await node.Rebirth(VersionBMetricsNode);
+                // Publish a device death message.
+                await node.PublishDeviceDeathMessage(DeviceIdentifier);
 
-        // Stopping a node.
-        await node.Stop();
-        Log.Information("SPB_NODE: Node stopped...");
+                // Do a node rebirth to publish new metrics.
+                await node.Rebirth(VersionBMetricsNode);
+            }
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, $"SPB_NODE: {ex.Message}");
+        }
+        finally
+        {
+            // Stopping a node.
+            if (node != null)
+            {
+                await node.Stop();
+            }
+
+            Log.Information("SPB_NODE: Node stopped...");
+
+            // Let Application task know that this node task is completed.
+            NodeExampleCompletedEvent.Set();
+        }
     }
 
     #region VersionBEvents

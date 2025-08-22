@@ -22,6 +22,7 @@
         },
         {
             "label": "build - examples",
+            "dependsOn": "build - library",
             "command": "dotnet",
             "type": "process",
             "args": [

@@ -111,15 +111,8 @@ public partial class SparkplugBase<T> : ISparkplugConnection where T : IMetric, 
             {
                 // Name only is set.
 
-                // Check if the metric is known.
-                if (!this.knownMetricsByName.TryGetValue(metric.Name, out var foundMetric))
-                {
-                    shouldbeAdded = false;
-                    this.Logger?.LogError("The metric {Metric} is removed because it is unknown.", metric);
-                }
-
                 // Check if the found metric is a version B metric.
-                if (foundMetric is not Metric foundVersionBMetric)
+                if (metric is not Metric foundVersionBMetric)
                 {
                     shouldbeAdded = false;
                     this.Logger?.LogError("The metric cast didn't work properly.");
@@ -142,15 +135,8 @@ public partial class SparkplugBase<T> : ISparkplugConnection where T : IMetric, 
                 }
                 else
                 {
-                    // Check if the metric is known.
-                    if (!this.knownMetricsByAlias.TryGetValue(metric.Alias.Value, out var foundMetric))
-                    {
-                        shouldbeAdded = false;
-                        this.Logger?.LogError("The metric {Metric} is removed because it is unknown.", metric);
-                    }
-
                     // Check if the found metric is a version B metric.
-                    if (foundMetric is not Metric foundVersionBMetric)
+                    if (metric is not Metric foundVersionBMetric)
                     {
                         shouldbeAdded = false;
                         this.Logger?.LogError("The metric cast didn't work properly.");
@@ -174,15 +160,8 @@ public partial class SparkplugBase<T> : ISparkplugConnection where T : IMetric, 
                 }
                 else
                 {
-                    // Check if the metric is known.
-                    if (!this.knownMetricsByName.TryGetValue(metric.Name, out var foundMetric))
-                    {
-                        shouldbeAdded = false;
-                        this.Logger?.LogError("The metric {Metric} is removed because it is unknown.", metric);
-                    }
-
                     // Check if the found metric is a version B metric.
-                    if (foundMetric is not Metric foundVersionBMetric)
+                    if (metric is not Metric foundVersionBMetric)
                     {
                         shouldbeAdded = false;
                         this.Logger?.LogError("The metric cast didn't work properly.");
